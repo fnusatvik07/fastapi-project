@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body,HTTPException
 from pydantic import BaseModel,Field
 from typing import Optional
 
@@ -56,6 +56,8 @@ BOOKS = [
 
 ]
 
+# Request Schema 
+
 class BookRequest(BaseModel):
      id: Optional[int] =Field(description="ID is not Mandatory",default=None)
      title: str =Field(min_length=5)
@@ -80,9 +82,9 @@ class BookRequest(BaseModel):
         }
      }
 
-class BookResponse():
-    status: str 
-    payload: dict
+
+# Response Schema
+
 
 
 
@@ -95,17 +97,19 @@ def health():
 
 # Read all Books
 
-@app.get("/getbooks")
+@app.get("/getbooks",status_code=status.HTTP_200_OK)
 def read_book():
     return BOOKS
 
 # Reading Individual Books # Path Parameter # Query Parameter 
 
 @app.get("/books/{book_id}")
-def read_book(book_id:int,rating:int):
+def read_book(book_id:int):
     for book in BOOKS:
         if book.id==book_id:
             return book
+    raise HTTPException(status_code=404, detail="Book ID Does Not Exist")
+    
 
 # Read Book by Rating
 
@@ -135,7 +139,23 @@ async def create_book(book_request:BookRequest):
     new_book=Book(**book_request.model_dump())
     BOOKS.append(new_book)
 
-    return {"status":"Book is Created", "payload":new_book }
+    return {
+        "status":"Book is Created",
+         "payload":new_book
+          }
+
+
+# Update Book
+
+@app.put("/books/update_book")
+async def update_book(book:BookRequest):
+    book_changed=False 
+    for i in range(len(BOOKS)):
+        if BOOKS[i].id==book.id:
+            BOOKS[i]=book 
+            book_changed=True
+    if not book_changed:
+        raise HTTPException(status_code=404, detail='Item not Found')
 
 
 
